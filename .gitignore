@@ -100,3 +100,4 @@ ENV/
 
 # Unix swap files
 *.swp
+*.swo
