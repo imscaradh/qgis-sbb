@@ -6,3 +6,5 @@ Dieses Projekt hat das Ziel, die Zugsverspätungen grösserer Städte innerhalb 
 * Python 2.7
 
 Derzeit werden nur Linux Betriebssysteme unterstützt.
+
+![Verspätungen CH](delays.png)
