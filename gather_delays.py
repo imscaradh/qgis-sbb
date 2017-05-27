@@ -1,13 +1,9 @@
 import requests
 import json
-import pdb
 import sys
-import math
 
 from qgis.core import *
 from qgis.gui import *
-from osgeo import ogr
-from PyQt4 import *
 from PyQt4 import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
@@ -20,10 +16,12 @@ cities = {
     'Biel/Bienne',
     'Langenthal',
     'Langnau',
+    'Interlaken Ost',
 }
 
 api_key = ''
 results = {}
+lbl_name = 'lbl'
 
 
 def get_results_by_town(town_name):
@@ -31,7 +29,7 @@ def get_results_by_town(town_name):
         'apikey': api_key,
         'dataset': 'ist-daten-sbb',
         'rows': 1000,
-        'q': 'haltestellen_name:"' + town_name + '"',
+        'q': 'haltestellen_name:' + town_name,
     }
 
     response = requests.get(req_url, params)
@@ -43,7 +41,7 @@ def get_results_by_town(town_name):
         fields = record['fields']
 
         dict_key = fields['haltestellen_name']
-        has_delay = fields['abfahrtsverspatung'] or fields['faellt_aus_tf']
+        has_delay = fields['abfahrtsverspatung'] == 'true' or fields['faellt_aus_tf'] == 'true'
 
         # Ugly workaround since the request fulltext query searcher performs
         # wildcard searches
@@ -60,8 +58,8 @@ def get_results_by_town(town_name):
 
 
 def init_ch_layer():
-    layer = QgsVectorLayer(
-        "ADMGDE_GDEDAT.shp", "Indicatrix", "ogr")
+    # Shapefile from http://www.arcgis.com/home/item.html?id=a5067fb3b0b74b188d7b650fa5c64b39
+    layer = QgsVectorLayer("Kantone.shp", "Kantone", "ogr")
     crs = layer.crs()
     crs.createFromId(2056)
     layer.setCrs(crs)
@@ -70,15 +68,15 @@ def init_ch_layer():
 
     symbols = layer.rendererV2().symbols()
     symbol = symbols[0]
-    symbol.setColor(QColor.fromRgb(0, 153, 255))
+    symbol.setColor(QColor.fromRgb(211, 255, 211))
+
     return layer
 
 
 def init_features_layer():
     # create a memory layer with points
     layer = QgsVectorLayer('Point', 'points', "memory")
-    layer.dataProvider().addAttributes(
-        [QgsField("city",  QVariant.String), QgsField("lbl", QVariant.String)])
+    layer.dataProvider().addAttributes([QgsField(lbl_name, QVariant.String)])
     layer.updateFields()
 
     symbols = layer.rendererV2().symbols()
@@ -94,16 +92,32 @@ def init_features_layer():
         pointGeo = QgsGeometry.fromPoint(point)
         tr = QgsCoordinateTransform(
             QgsCoordinateReferenceSystem(4326),
-            QgsCoordinateReferenceSystem(2056)
+            QgsCoordinateReferenceSystem(21781)
         )
         pointGeo.transform(tr)
         feature.setGeometry(pointGeo)
-        feat_lbl = 'Delays: ' + str(results[city]['cnt'])
-        feature.setAttributes([city, feat_lbl])
+        feat_lbl = city + '\n\nDelays: ' + str(results[city]['cnt'])
+        feature.setAttributes([feat_lbl])
 
         layer.dataProvider().addFeatures([feature])
         layer.updateExtents()
     return layer
+
+
+def configure_labels(layer, field_name):
+    palyr = QgsPalLayerSettings()
+    palyr.readFromLayer(layer)
+    palyr.enabled = True
+    palyr.fieldName = field_name
+    palyr.placement = QgsPalLayerSettings.OverPoint
+    palyr.fontSizeInMapUnits = False
+    palyr.textColor = QColor(0, 0, 0)
+    palyr.yOffset = -0
+    palyr.setDataDefinedProperty(
+        QgsPalLayerSettings.OffsetUnits, True, True, '1', '')
+    palyr.setDataDefinedProperty(QgsPalLayerSettings.Bold, True, True, '1', '')
+    palyr.setDataDefinedProperty(QgsPalLayerSettings.Size, True, True, '9', '')
+    palyr.writeToLayer(features_layer)
 
 
 if __name__ == '__main__':
@@ -117,7 +131,7 @@ if __name__ == '__main__':
     for city in cities:
         get_results_by_town(city)
 
-    # print json.dumps(results, indent=4)
+    print json.dumps(results, indent=4)
 
     app = QgsApplication([], True)
     QgsApplication.setPrefixPath('/usr', True)
@@ -125,22 +139,10 @@ if __name__ == '__main__':
 
     ch_layer = init_ch_layer()
     features_layer = init_features_layer()
+    configure_labels(features_layer, lbl_name)
 
     QgsMapLayerRegistry.instance().addMapLayer(features_layer)
     QgsMapLayerRegistry.instance().addMapLayer(ch_layer)
-
-    palyr = QgsPalLayerSettings()
-    palyr.readFromLayer(features_layer)
-    palyr.enabled = True
-    palyr.fieldName = 'lbl'
-    palyr.placement = QgsPalLayerSettings.OverPoint
-    palyr.fontSizeInMapUnits = False
-    palyr.textColor = QColor(0, 0, 0)
-    palyr.yOffset = -3
-    palyr.setDataDefinedProperty(QgsPalLayerSettings.OffsetUnits, True, True, '1', '')
-    palyr.setDataDefinedProperty(QgsPalLayerSettings.Bold, True, True, '1', '')
-    palyr.setDataDefinedProperty(QgsPalLayerSettings.Size, True, True, '9', '')
-    palyr.writeToLayer(features_layer)
 
     canvas = QgsMapCanvas()
     canvas.setCanvasColor(Qt.white)
