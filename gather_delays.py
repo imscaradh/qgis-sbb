@@ -1,3 +1,4 @@
+# coding: utf8
 import requests
 import json
 import sys
@@ -17,6 +18,10 @@ cities = {
     'Langenthal',
     'Langnau',
     'Interlaken Ost',
+    # 'Zürich HB',
+    'Basel SBB',
+    'Luzern',
+    'Chur',
 }
 
 api_key = ''
@@ -58,7 +63,8 @@ def get_results_by_town(town_name):
 
 
 def init_ch_layer():
-    # Shapefile from http://www.arcgis.com/home/item.html?id=a5067fb3b0b74b188d7b650fa5c64b39
+    # Shapefile from
+    # http://www.arcgis.com/home/item.html?id=a5067fb3b0b74b188d7b650fa5c64b39
     layer = QgsVectorLayer("Kantone.shp", "Kantone", "ogr")
     crs = layer.crs()
     crs.createFromId(2056)
