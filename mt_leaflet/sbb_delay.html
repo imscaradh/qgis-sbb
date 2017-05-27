@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>GIS Project SBB Delay</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+      <meta charset="utf-8">
+	<style type="text/css">
+	  html { height: 100% }
+	  body { height: 100%; margin: 0; padding: 0 }
+	  #map-canvas { height: 100% }
+	</style>
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
+	<script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+	<script src="https://code.jquery.com/jquery-3.2.1.min.js"
+			integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+			crossorigin="anonymous"></script>
+  </head>
+  <body>
+    <h1>GIS Project SBB Delay</h1>
+    <div id="map-canvas"/>
+
+    <script type="text/javascript">
+
+    //Create map object
+    var map = L.map('map-canvas').setView([46.8, 8], 8);
+
+    //Add base layer (e.g. OSM tile layer)
+    var baselayer = L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
+            maxZoom: 18
+    }).addTo(map);
+
+    var cities = ['Thun', 'Bern', 'Biel/Bienne', 'Langenthal', 'Langnau'];
+
+    var api_key = '';
+    var req_url = 'https://data.sbb.ch/api/records/1.0/search/';
+    var req_url_coord = 'http://nominatim.openstreetmap.org/'
+
+
+
+    get_results_by_town('Thun');
+    //get_results_by_town('Bern');
+    //get_results_by_town('Lyss');
+
+
+    function get_results_by_town(town_name){
+      params = {
+        'apikey': api_key,
+        'dataset': 'ist-daten-sbb',
+        'rows': 1,
+        'q': 'haltestellen_name:'+town_name,
+      }
+      $.getJSON(req_url, params, function(data){
+        console.log(data);
+        var records = data['records'];
+        console.log(records);
+        var fields = records[0]['fields'];
+        console.log(fields);
+        get_coordinates(town_name);
+        //var destination = fields.geopos;//[47.14235825, 7.2446784487745];
+        //var destinationMarker = L.marker(destination).addTo(map);
+      })
+    };
+
+    function get_coordinates(town_name){
+      params = {
+        'format': 'json',
+        'addressdetails': 1,
+        'type': 'railway',
+        'q': 'city:'+town_name,
+      }
+      $.getJSON(req_url_coord, params, function(data){
+        console.log(data);
+      })
+    }
+
+    </script>
+  </body>
+</html>
