@@ -17,6 +17,12 @@
   </head>
   <body>
     <h1>GIS Project SBB Delay</h1>
+
+    <form>
+      Trainstation: <input type="text" name="trainst" value="" placeholder="bern">
+      <input type="button" onclick="get_results_by_town(trainst.value)" value="Submit"></br>
+    </form>
+
     <div id="map-canvas"/>
 
     <script type="text/javascript">
@@ -34,44 +40,52 @@
 
     var api_key = '';
     var req_url = 'https://data.sbb.ch/api/records/1.0/search/';
-    var req_url_coord = 'http://nominatim.openstreetmap.org/'
 
 
-
-    get_results_by_town('Thun');
-    //get_results_by_town('Bern');
-    //get_results_by_town('Lyss');
-
+    /*get_results_by_town('thun');
+    get_results_by_town('bern');
+    get_results_by_town('Lyss');
+    get_results_by_town('Zürich');
+    get_results_by_town('Lugano');
+    get_results_by_town('Chur');
+    get_results_by_town('Geneve');
+    get_results_by_town('Biel/Bienne');
+    get_results_by_town('Olten');
+    get_results_by_town('Kerzers');*/
 
     function get_results_by_town(town_name){
+      console.log(town_name);
       params = {
         'apikey': api_key,
         'dataset': 'ist-daten-sbb',
-        'rows': 1,
+        'rows': 1000,
         'q': 'haltestellen_name:'+town_name,
       }
+      var has_delay = 0;
+      var outfall = 0
       $.getJSON(req_url, params, function(data){
-        console.log(data);
         var records = data['records'];
-        console.log(records);
-        var fields = records[0]['fields'];
-        console.log(fields);
-        get_coordinates(town_name);
-        //var destination = fields.geopos;//[47.14235825, 7.2446784487745];
-        //var destinationMarker = L.marker(destination).addTo(map);
+        var coords = records[0]['fields']['geopos'];
+        var haltst = records[0]['fields']['haltestellen_name'];
+        for(i=0; i<records.length; i++) {
+          var fields = records[i]['fields'];
+          if(fields.abfahrtsverspatung == 'true') {
+            if(fields.faellt_aus_tf == 'true') outfall = outfall + 1;
+            else has_delay = has_delay + 1;
+
+          }
+        }
+        create_Marker(coords, haltst, has_delay, outfall);
       })
     };
 
-    function get_coordinates(town_name){
-      params = {
-        'format': 'json',
-        'addressdetails': 1,
-        'type': 'railway',
-        'q': 'city:'+town_name,
-      }
-      $.getJSON(req_url_coord, params, function(data){
-        console.log(data);
-      })
+    function create_Marker(coords, haltst, has_delay, outfall) {
+      var popupContent = 'Haltestelle: '+haltst+
+                         '<br /> Verspätete Abfahrten: '+has_delay+
+                         '<br /> Ausfälle: '+outfall;
+      var marker = L.marker(coords).addTo(map);
+      marker.bindPopup(popupContent);
+
     }
 
     </script>
