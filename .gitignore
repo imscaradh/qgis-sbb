@@ -101,3 +101,5 @@ ENV/
 # Unix swap files
 *.swp
 *.swo
+
+*.DS_Store

@@ -4,90 +4,85 @@
     <title>GIS Project SBB Delay</title>
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
       <meta charset="utf-8">
-	<style type="text/css">
-	  html { height: 100% }
-	  body { height: 100%; margin: 0; padding: 0 }
-	  #map-canvas { height: 100% }
-	</style>
 	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
+  <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
 	<script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
 	<script src="https://code.jquery.com/jquery-3.2.1.min.js"
 			integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
 			crossorigin="anonymous"></script>
   </head>
-  <body>
+
+
+
+  <body style="margin-left: 1%">
     <h1>GIS Project SBB Delay</h1>
 
-    <form>
+    <form id="train-input">
       Trainstation: <input type="text" name="trainst" value="" placeholder="bern">
-      <input type="button" onclick="get_results_by_town(trainst.value)" value="Submit"></br>
+      <input type="button" onclick="get_results_by_town(trainst.value)" value="Add"></br>
     </form>
 
-    <div id="map-canvas"/>
+    <div style="margin-top: 10px" class="container-fluid">
+      <div class="row equal">
+        <div class="col-md-10" style="padding: 0">
+          <div id="map-canvas" style="height: 600px"></div>
+        </div>
+        <div class="col-md-2" id="list"><h4>Trainstations:</h4></div>
+      </div>
+    </div>
 
     <script type="text/javascript">
 
-    //Create map object
-    var map = L.map('map-canvas').setView([46.8, 8], 8);
+      //Create map object
+      var map = L.map('map-canvas').setView([46.8, 8], 8);
 
-    //Add base layer (e.g. OSM tile layer)
-    var baselayer = L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      //Add base layer (e.g. OSM tile layer)
+      var baselayer = L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
             maxZoom: 18
-    }).addTo(map);
+      }).addTo(map);
 
-    var cities = ['Thun', 'Bern', 'Biel/Bienne', 'Langenthal', 'Langnau'];
+      var cities = ['Thun', 'Bern', 'Biel/Bienne', 'Langenthal', 'Langnau'];
 
-    var api_key = '';
-    var req_url = 'https://data.sbb.ch/api/records/1.0/search/';
+      var api_key = '';
+      var req_url = 'https://data.sbb.ch/api/records/1.0/search/';
 
-
-    /*get_results_by_town('thun');
-    get_results_by_town('bern');
-    get_results_by_town('Lyss');
-    get_results_by_town('Zürich');
-    get_results_by_town('Lugano');
-    get_results_by_town('Chur');
-    get_results_by_town('Geneve');
-    get_results_by_town('Biel/Bienne');
-    get_results_by_town('Olten');
-    get_results_by_town('Kerzers');*/
-
-    function get_results_by_town(town_name){
-      console.log(town_name);
-      params = {
-        'apikey': api_key,
-        'dataset': 'ist-daten-sbb',
-        'rows': 1000,
-        'q': 'haltestellen_name:'+town_name,
-      }
-      var has_delay = 0;
-      var outfall = 0
-      $.getJSON(req_url, params, function(data){
-        var records = data['records'];
-        var coords = records[0]['fields']['geopos'];
-        var haltst = records[0]['fields']['haltestellen_name'];
-        for(i=0; i<records.length; i++) {
-          var fields = records[i]['fields'];
-          if(fields.abfahrtsverspatung == 'true') {
-            if(fields.faellt_aus_tf == 'true') outfall = outfall + 1;
-            else has_delay = has_delay + 1;
-
-          }
+      function get_results_by_town(town_name){
+        console.log(town_name);
+        params = {
+          'apikey': api_key,
+          'dataset': 'ist-daten-sbb',
+          'rows': 1000,
+          'q': 'haltestellen_name:'+town_name,
         }
-        create_Marker(coords, haltst, has_delay, outfall);
-      })
-    };
+        var has_delay = 0;
+        var outfall = 0
+        $.getJSON(req_url, params, function(data){
+          var records = data['records'];
+          var coords = records[0]['fields']['geopos'];
+          var haltst = records[0]['fields']['haltestellen_name'];
+          for(i=0; i<records.length; i++) {
+            var fields = records[i]['fields'];
+            if(fields.abfahrtsverspatung == 'true' && fields.haltestellen_name == haltst) {
+              if(fields.faellt_aus_tf == 'true') outfall = outfall + 1;
+              else has_delay = has_delay + 1;
+            }
+          }
+          create_Marker(coords, haltst, has_delay, outfall);
+          var div = document.getElementById('list');
+          var param = document.createElement('p');
+          param.innerHTML = haltst;
+          div.appendChild(param)
+        })
+      };
 
-    function create_Marker(coords, haltst, has_delay, outfall) {
-      var popupContent = 'Haltestelle: '+haltst+
-                         '<br /> Verspätete Abfahrten: '+has_delay+
-                         '<br /> Ausfälle: '+outfall;
-      var marker = L.marker(coords).addTo(map);
-      marker.bindPopup(popupContent);
-
-    }
-
+      function create_Marker(coords, haltst, has_delay, outfall) {
+        var popupContent = 'Haltestelle: '+haltst+
+                          '<br /> Verspätete Abfahrten: '+has_delay+
+                          '<br /> Ausfälle: '+outfall;
+        var marker = L.marker(coords).addTo(map);
+        marker.bindPopup(popupContent);
+      }
     </script>
   </body>
 </html>
