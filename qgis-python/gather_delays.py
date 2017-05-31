@@ -13,15 +13,14 @@ req_url = 'https://data.sbb.ch/api/records/1.0/search/'
 
 cities = {
     'Thun',
-    'Bern',
-    'Biel/Bienne',
-    'Langenthal',
-    'Langnau',
-    'Interlaken Ost',
-    # 'Zürich HB',
-    'Basel SBB',
-    'Luzern',
-    'Chur',
+    # 'Bern',
+    # 'Biel/Bienne',
+    # 'Langenthal',
+    # 'Langnau',
+    # 'Interlaken Ost',
+    # 'Basel SBB',
+    # 'Luzern',
+    # 'Chur',
 }
 
 api_key = ''
@@ -129,10 +128,9 @@ def configure_labels(layer, field_name):
 if __name__ == '__main__':
 
     if len(sys.argv) != 2:
-        print "Provide API key as parameter! Exiting..."
-        exit(1)
-
-    api_key = sys.argv[1]
+        print "No API key provided. Anonymous requests are limited!"
+    else:
+        api_key = sys.argv[1]
 
     for city in cities:
         get_results_by_town(city)
