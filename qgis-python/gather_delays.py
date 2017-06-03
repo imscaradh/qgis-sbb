@@ -13,14 +13,15 @@ req_url = 'https://data.sbb.ch/api/records/1.0/search/'
 
 cities = {
     'Thun',
-    # 'Bern',
-    # 'Biel/Bienne',
-    # 'Langenthal',
-    # 'Langnau',
-    # 'Interlaken Ost',
-    # 'Basel SBB',
-    # 'Luzern',
-    # 'Chur',
+    'Bern',
+    'Biel/Bienne',
+    'Langenthal',
+    'Langnau',
+    'Interlaken Ost',
+    'Basel SBB',
+    'Luzern',
+    'Chur',
+    'Brugg AG',
 }
 
 api_key = ''
@@ -45,7 +46,6 @@ def get_results_by_town(town_name):
         fields = record['fields']
 
         dict_key = fields['haltestellen_name']
-        has_delay = fields['abfahrtsverspatung'] == 'true' or fields['faellt_aus_tf'] == 'true'
 
         # Ugly workaround since the request fulltext query searcher performs
         # wildcard searches
@@ -54,11 +54,14 @@ def get_results_by_town(town_name):
 
         if not results.get(dict_key):
             results[dict_key] = {}
-            results[dict_key]['cnt'] = 0
+            results[dict_key]['delays'] = 0
+            results[dict_key]['outages'] = 0
             results[dict_key]['geopos'] = fields['geopos']
 
-        elif has_delay:
-            results[dict_key]['cnt'] += 1
+        elif fields['abfahrtsverspatung'] == 'true':
+            results[dict_key]['delays'] += 1
+        elif fields['faellt_aus_tf'] == 'true':
+            results[dict_key]['outages'] += 1
 
 
 def init_ch_layer():
@@ -101,7 +104,7 @@ def init_features_layer():
         )
         pointGeo.transform(tr)
         feature.setGeometry(pointGeo)
-        feat_lbl = city + '\n\nDelays: ' + str(results[city]['cnt'])
+        feat_lbl = city + '\n\nDelays: ' + str(results[city]['delays']) + '\nOutages:' + str(results[city]['outages'])
         feature.setAttributes([feat_lbl])
 
         layer.dataProvider().addFeatures([feature])
