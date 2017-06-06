@@ -17,17 +17,26 @@
   <body style="margin-left: 1%">
     <h1>GIS Project SBB Delay</h1>
 
-    <form id="train-input">
-      Trainstation: <input type="text" name="trainst" value="" placeholder="bern">
-      <input type="button" onclick="get_results_by_town(trainst.value)" value="Add"></br>
-    </form>
+    <div class="col-md-12" style="padding-left: 0; padding-bottom: 5px">
+      <form id="train-input" class="col-md-2" style="padding-left: 0">
+        Trainstation: <input id="inp_trainst" type="text" name="trainst" value="">
+        <input type="button" onclick="get_results_by_town(trainst.value)" value="Add"></br>
+      </form>
+      <div class="col-md-1" style="padding: 0, 2px, 0, 2px"><input type="button" onclick="demo()" value="Demo"></div>
+      <div class="col-md-1" style="padding: 0, 2px, 0, 2px"><input type="button" onclick="reset_map()" value="Reset Map"></div>
+      <div class="col-md-1" style="padding: 0, 2px, 0, 2px">
+        <input id="btnOf" type="button" onclick="get_all_outfalls()" value="All outfalls">
+        <input id="btnClOf" type="hidden" onclick="clear_all_outfalls()" value="Clear outfalls">
+      </div>
+    </div>
 
     <div style="margin-top: 10px" class="container-fluid">
       <div class="row equal">
         <div class="col-md-10" style="padding: 0">
           <div id="map-canvas" style="height: 600px"></div>
         </div>
-        <div class="col-md-2" id="list"><h4>Trainstations:</h4></div>
+        <h4 >Trainstations:</h4>
+        <div class="col-md-2" id="list"></div>
       </div>
     </div>
 
@@ -42,15 +51,28 @@
             maxZoom: 18
       }).addTo(map);
 
-      var cities = ['Thun', 'Bern', 'Biel/Bienne', 'Langenthal', 'Langnau'];
+      var cities = [
+        'Thun',
+        'Bern',
+        'Biel/Bienne',
+        'Langenthal',
+        'Zürich HB',
+        'Chur',
+        'Geneve',
+        'Sion',
+        'Lugano' ];
 
       var api_key = '';
       var req_url = 'https://data.sbb.ch/api/records/1.0/search/';
 
+      var markers = new L.layerGroup().addTo(map);
+      var of_markers = new L.layerGroup().addTo(map);
+
       function get_results_by_town(town_name){
-        console.log(town_name);
+        var input = document.getElementById('inp_trainst');
+        input.value = "";
         params = {
-          'apikey': api_key,
+          //'apikey': api_key,
           'dataset': 'ist-daten-sbb',
           'rows': 1000,
           'q': 'haltestellen_name:'+town_name,
@@ -63,26 +85,96 @@
           var haltst = records[0]['fields']['haltestellen_name'];
           for(i=0; i<records.length; i++) {
             var fields = records[i]['fields'];
-            if(fields.abfahrtsverspatung == 'true' && fields.haltestellen_name == haltst) {
-              if(fields.faellt_aus_tf == 'true') outfall = outfall + 1;
-              else has_delay = has_delay + 1;
+            if((fields.abfahrtsverspatung == "true") && (fields.haltestellen_name == haltst)) {
+              has_delay = has_delay + 1;
+            }
+            if((fields.faellt_aus_tf == "true") && (fields.haltestellen_name == haltst)) {
+              outfall = outfall + 1;
             }
           }
-          create_Marker(coords, haltst, has_delay, outfall);
+          create_Marker_popup(coords, haltst, has_delay, outfall);
           var div = document.getElementById('list');
           var param = document.createElement('p');
           param.innerHTML = haltst;
-          div.appendChild(param)
-        })
+          div.appendChild(param);
+        });
       };
 
-      function create_Marker(coords, haltst, has_delay, outfall) {
+      function create_Marker_popup(coords, haltst, has_delay, outfall) {
         var popupContent = 'Haltestelle: '+haltst+
                           '<br /> Verspätete Abfahrten: '+has_delay+
                           '<br /> Ausfälle: '+outfall;
-        var marker = L.marker(coords).addTo(map);
+
+        var marker = L.marker(coords);
         marker.bindPopup(popupContent);
+        markers.addLayer(marker);
       }
+
+      function create_Marker(coords, haltst, outfall){
+        var popupContent = 'Haltestelle: '+haltst+
+                           '<br /> Ausfälle: '+outfall;
+        var marker = L.marker(coords);
+        marker.bindPopup(popupContent);
+        of_markers.addLayer(marker);
+      }
+
+      function get_all_outfalls() {
+        var btn_of = document.getElementById('btnOf');
+        var btn_cl_of = document.getElementById('btnClOf');
+        btn_of.type = 'hidden';
+        btn_cl_of.type = 'button';
+        params = {
+          //'apikey': api_key,
+          'dataset': 'ist-daten-sbb',
+          'rows': 1000,
+          'q': 'faellt_aus_tf: true',
+        }
+        $.getJSON(req_url, params, function(data){
+          var records = data['records'];
+          var haltst = [];
+          var coords = [];
+          var outfall = [];
+          for(var i=0; i<records.length; i++) {
+            var fields = records[i]['fields'];
+            var pos = fields['geopos'];
+            var haltstelle = fields['haltestellen_name'];
+            if(!($.inArray(haltstelle, haltst) > -1)){
+              haltst.push(haltstelle);
+              coords.push(pos);
+              outfall.push(1);
+            } else {
+              outfall[haltst.indexOf(haltstelle)] = outfall[haltst.indexOf(haltstelle)] + 1;
+            }
+          }
+
+          for (var i = 0; i < haltst.length; i++) {
+            create_Marker(coords[i], haltst[i], outfall[i]);
+          }
+        });
+      }
+
+      function reset_map() {
+        markers.clearLayers();
+        var div = document.getElementById('list');
+        while (div.firstChild) {
+          div.removeChild(div.firstChild);
+        }
+      }
+
+      function clear_all_outfalls() {
+        var btn_of = document.getElementById('btnOf');
+        var btn_cl_of = document.getElementById('btnClOf');
+        btn_of.type = 'button';
+        btn_cl_of.type = 'hidden';
+        of_markers.clearLayers();
+      }
+
+      function demo() {
+        for (var i = 0; i < cities.length; i++) {
+          get_results_by_town(cities[i]);
+        }
+      }
+
     </script>
   </body>
 </html>
