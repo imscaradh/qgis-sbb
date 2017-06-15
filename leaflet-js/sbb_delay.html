@@ -51,6 +51,7 @@
             maxZoom: 18
       }).addTo(map);
 
+      // Vorgegebene Städte für Demo Mode
       var cities = [
         'Thun',
         'Bern',
@@ -62,17 +63,20 @@
         'Sion',
         'Lugano' ];
 
-      var api_key = '';
+      // URL der API
       var req_url = 'https://data.sbb.ch/api/records/1.0/search/';
 
+      // Markerlayer der Demo/Manuell eingegebenen Haltestellen
       var markers = new L.layerGroup().addTo(map);
+
+      // Markerlayer aller Ausfälle
       var of_markers = new L.layerGroup().addTo(map);
 
+      // Funktion um Resultate einer Haltestelle zu erhalten
       function get_results_by_town(town_name){
         var input = document.getElementById('inp_trainst');
         input.value = "";
         params = {
-          //'apikey': api_key,
           'dataset': 'ist-daten-sbb',
           'rows': 1000,
           'q': 'haltestellen_name:'+town_name,
@@ -100,6 +104,7 @@
         });
       };
 
+      // Funktion um ein Marker und Popup mit Verspätungen und Ausfällen
       function create_Marker_popup(coords, haltst, has_delay, outfall) {
         var popupContent = 'Haltestelle: '+haltst+
                           '<br /> Verspätete Abfahrten: '+has_delay+
@@ -110,6 +115,7 @@
         markers.addLayer(marker);
       }
 
+      // Funktion um ein Marker und Popup nur mit Ausfällen
       function create_Marker(coords, haltst, outfall){
         var popupContent = 'Haltestelle: '+haltst+
                            '<br /> Ausfälle: '+outfall;
@@ -118,13 +124,13 @@
         of_markers.addLayer(marker);
       }
 
+      // Funktion um alle Ausfälle zu erhalten
       function get_all_outfalls() {
         var btn_of = document.getElementById('btnOf');
         var btn_cl_of = document.getElementById('btnClOf');
         btn_of.type = 'hidden';
         btn_cl_of.type = 'button';
         params = {
-          //'apikey': api_key,
           'dataset': 'ist-daten-sbb',
           'rows': 1000,
           'q': 'faellt_aus_tf: true',
@@ -153,6 +159,7 @@
         });
       }
 
+      // Löschen der Marker auf der Map
       function reset_map() {
         markers.clearLayers();
         var div = document.getElementById('list');
@@ -161,6 +168,7 @@
         }
       }
 
+      // Löschen aller Ausfälle auf der Map
       function clear_all_outfalls() {
         var btn_of = document.getElementById('btnOf');
         var btn_cl_of = document.getElementById('btnClOf');
@@ -169,6 +177,7 @@
         of_markers.clearLayers();
       }
 
+      // aufrufen der Demo
       function demo() {
         for (var i = 0; i < cities.length; i++) {
           get_results_by_town(cities[i]);
